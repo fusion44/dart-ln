@@ -1,6 +1,8 @@
-part of 'cln_rpc_implementation.dart';
+library cln_utils;
 
-WalletBalance _getWalletBalance(Map<String, dynamic> funds) {
+import '../../../models.dart';
+
+WalletBalance getWalletBalance(Map<String, dynamic> funds) {
   if (!funds.containsKey('result')) {
     throw StateError('listfunds map must contain a result key');
   }
@@ -42,7 +44,7 @@ WalletBalance _getWalletBalance(Map<String, dynamic> funds) {
   return WalletBalance(total, onchain, channels);
 }
 
-DecodedInvoice _getDecodedInvoiceFromJson(Map<String, dynamic> json) {
+DecodedInvoice getDecodedInvoiceFromJson(Map<String, dynamic> json) {
   return DecodedInvoice(
     type: json['type'],
     currency: json['currency'],
@@ -55,26 +57,26 @@ DecodedInvoice _getDecodedInvoiceFromJson(Map<String, dynamic> json) {
     minFinalCltvExpiry: json['min_final_cltv_expiry'],
     paymentSecret: json['payment_secret'],
     features: json['features'],
-    routes: _getRoutesList(json['routes']),
+    routes: getRoutesList(json['routes']),
     paymentHash: json['payment_hash'],
     signature: json['signature'],
     valid: json['valid'],
   );
 }
 
-List<List<Hop>> _getRoutesList(List<dynamic> jsonList) {
+List<List<Hop>> getRoutesList(List<dynamic> jsonList) {
   List<List<Hop>> routes = [];
   for (var routeList in jsonList) {
     List<Hop> route = [];
     for (var hop in routeList) {
-      route.add(_getRouteFromJson(hop));
+      route.add(getRouteFromJson(hop));
     }
     routes.add(route);
   }
   return routes;
 }
 
-Hop _getRouteFromJson(Map<String, dynamic> json) {
+Hop getRouteFromJson(Map<String, dynamic> json) {
   return Hop(
     pubkey: json['pubkey'],
     shortChannelId: json['short_channel_id'],
@@ -84,14 +86,17 @@ Hop _getRouteFromJson(Map<String, dynamic> json) {
   );
 }
 
-Payment _getPaymentFromJson(Map<String, dynamic> json) {
-  late DateTime createdAt;
+Payment getPaymentFromJson(Map<String, dynamic> json) {
+  late final DateTime dt;
   if (json['created_at'] is int) {
-    createdAt = DateTime.fromMillisecondsSinceEpoch(json['created_at'] * 1000);
+    dt = DateTime.fromMillisecondsSinceEpoch(json['created_at'] * 1000);
   } else if (json['created_at'] is double) {
-    createdAt =
-        DateTime.fromMillisecondsSinceEpoch(json['created_at'] * 1000.0);
+    dt = DateTime.fromMillisecondsSinceEpoch(
+        (json['created_at'] * 1000).toInt());
+  } else {
+    throw StateError('created_at is not a int or double');
   }
+
   return Payment(
     bolt11: json['bolt11'],
     bolt12: json['bolt12'],
@@ -99,11 +104,10 @@ Payment _getPaymentFromJson(Map<String, dynamic> json) {
     destination: json['destination'] as String,
     paymentHash: json['payment_hash'] as String,
     status: _parsePaymentStatus(json['status'] as String),
-    createdAt:
-        DateTime.fromMillisecondsSinceEpoch((json['created_at'] as int) * 1000),
+    createdAt: dt,
     preimage: json['preimage'],
-    amountMsat: _parseMsat(json['amount_msat']),
-    amountSentMsat: _parseMsat(json['amount_sent_msat']),
+    amountMsat: parseMsat(json['amount_msat']),
+    amountSentMsat: parseMsat(json['amount_sent_msat']),
   );
 }
 
@@ -120,6 +124,6 @@ PaymentStatus _parsePaymentStatus(String status) {
   }
 }
 
-int _parseMsat(String msat) {
+int parseMsat(String msat) {
   return int.parse(msat.replaceAll('msat', ''));
 }

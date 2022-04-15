@@ -1,3 +1,5 @@
+library cln_models;
+
 class CLNInvoiceList {
   List<CLNInvoice> invoices;
 

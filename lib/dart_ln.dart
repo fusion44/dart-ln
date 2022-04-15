@@ -5,6 +5,6 @@ library dart_ln;
 
 export 'src/dart_ln_base.dart';
 
-export 'src/implementations/cln_rpc/cln_rpc_implementation.dart';
+export 'src/implementations/ln_core/core_rpc/core_rpc_implementation.dart';
 
 // TODO: Export any libraries intended for clients of this package.

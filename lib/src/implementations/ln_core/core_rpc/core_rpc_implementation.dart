@@ -2,23 +2,21 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:dart_ln/src/implementations/cln_rpc/cln_models.dart';
+import '../../../errors.dart';
+import '../../../funding_source.dart';
+import '../../../models.dart';
+import '../common/cln_models.dart';
+import '../common/cln_utils.dart';
 
-import '../../errors.dart';
-import '../../models.dart';
-import '../../funding_source.dart';
-
-part 'cln_utils.dart';
-
-class CLightningConnectionData extends ConnectionData {
+class LnCoreConnectionData extends ConnectionData {
   final String address;
 
-  CLightningConnectionData([
+  LnCoreConnectionData([
     this.address = '/home/fusion44/.lightning/testnet/lightning-rpc',
   ]);
 }
 
-class CLightningRPCSource implements FundingSource {
+class LnCoreRPCSource implements FundingSource {
   final int _invoiceStreamId = 0;
   final int _paymentsStreamId = 1;
   int _currentId = 100;
@@ -39,7 +37,7 @@ class CLightningRPCSource implements FundingSource {
 
   @override
   FutureOr<void> connect(ConnectionData data) async {
-    if (data is! CLightningConnectionData) {
+    if (data is! LnCoreConnectionData) {
       throw ArgumentError('Data must be of class CLnConnectionData.');
     }
 
@@ -143,11 +141,13 @@ class CLightningRPCSource implements FundingSource {
     final map = _buildRequestData('listinvoices', [id]);
     final res = await _sendRequest(map);
     final list = CLNInvoiceList.fromJson(res['result']);
+
     if (list.invoices.isEmpty) {
       return InvoiceStatus(id, false, false, 0);
     }
+
     if (list.invoices.length == 1) {
-      final amount = _parseMsat(list.invoices[0].amountMsat);
+      final amount = parseMsat(list.invoices[0].amountMsat);
       final status = list.invoices[0].status == 'paid' ? true : false;
 
       return InvoiceStatus(id, true, status, amount);
@@ -184,7 +184,7 @@ class CLightningRPCSource implements FundingSource {
               ii.label,
               true,
               ii.status == 'paid',
-              _parseMsat(ii.amountMsat),
+              parseMsat(ii.amountMsat),
             ),
           );
         }
@@ -205,7 +205,7 @@ class CLightningRPCSource implements FundingSource {
       throw SourceError(res['error']?.message);
     }
 
-    return _getDecodedInvoiceFromJson(res['result']);
+    return getDecodedInvoiceFromJson(res['result']);
   }
 
   @override
@@ -226,22 +226,26 @@ class CLightningRPCSource implements FundingSource {
       if (paymentHash != null) 'payment_hash': paymentHash,
     });
     final res = await _sendRequest(map);
+
     if (res is Map<String, dynamic> && res.containsKey('error')) {
       throw SourceError(res['error']?.message);
     }
+
     if (res is Map<String, dynamic> &&
         res.containsKey('result') &&
         res['result'].containsKey('pays')) {
       final l = res['result']['pays'];
-      print(l.runtimeType);
+
       if (l is! List<dynamic>) {
         throw StateError('Invalid response from C-Lightning');
       }
+
       if (l.isEmpty) {
         return PaymentStatusResult(false);
       }
+
       if (l.length == 1) {
-        final p = _getPaymentFromJson(l[0]);
+        final p = getPaymentFromJson(l[0]);
         return PaymentStatusResult(true, payment: p);
       }
 
@@ -275,12 +279,12 @@ class CLightningRPCSource implements FundingSource {
       throw SourceError(res['error']?.message);
     }
 
-    final p = _getPaymentFromJson(res['result']);
+    final p = getPaymentFromJson(res['result']);
     return p;
   }
 
   @override
-  WalletType type() => WalletType.cln;
+  WalletType type() => WalletType.ln_core;
 
   @override
   FutureOr<WalletBalance> walletBalance() async {
@@ -288,7 +292,7 @@ class CLightningRPCSource implements FundingSource {
 
     final map = _buildRequestData('listfunds', const []);
     final res = await _sendRequest(map);
-    return _getWalletBalance(res);
+    return getWalletBalance(res);
   }
 
   Map<String, Object> _buildRequestData(String method, dynamic params) => {

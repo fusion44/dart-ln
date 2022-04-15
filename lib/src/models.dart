@@ -1,7 +1,7 @@
 enum WalletType {
   empty,
   lnd,
-  cln,
+  ln_core,
   eclair,
 }
 
