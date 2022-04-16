@@ -9,6 +9,7 @@ environment:
 
 dependencies: 
   grpc: ^3.0.2
+  http: ^0.13.4
   json_rpc_2: ^3.0.1
   protobuf: ^2.0.1
   

@@ -1,0 +1,1 @@
+A customized SSE client based on https://pub.dev/packages/flutter_client_sse

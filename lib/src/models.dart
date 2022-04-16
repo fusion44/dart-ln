@@ -2,6 +2,7 @@ enum WalletType {
   empty,
   lnd,
   ln_core,
+  sparko,
   eclair,
 }
 
